@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pháo hoa trái tim</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      overflow: hidden;
+    }
+    
+  </style>
+</head>
+<body class="bg-pink-200 flex items-center justify-center min-h-screen relative">
+  <div id="loading" class="text-center text-white text-xl font-bold">
+    Loading... <span id="progress">0%</span>
+  </div>
+  
+  <div id="content" class="hidden text-center">
+    <div class="relative">
+      <button id="actionButton" class="bg-red-300 text-white px-4 py-2 border border-gray-400 shadow-lg rounded-lg text-lg">
+        Loading thành công
+      </button>
+    </div>
+  </div>
+
+  <!-- Firebase -->
+  <script type="module">
+    // Import các module Firebase
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js";
+        import { getDatabase, ref, set, onValue, push } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-database.js";
+
+        // Cấu hình Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyBNFQbKCFQjHzJwEO2kuRyo3Tyr63FUlWw",
+            authDomain: "bai-test-2ae56.firebaseapp.com",
+            databaseURL: "https://bai-test-2ae56-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "bai-test-2ae56",
+            storageBucket: "bai-test-2ae56.appspot.com",
+            messagingSenderId: "152935522979",
+            appId: "1:152935522979:web:070ca9c7da4a4867959516",
+            measurementId: "G-9RQJH9ZCBJ"
+        };
+
+        // Khởi tạo Firebase
+        const app = initializeApp(firebaseConfig);
+        const database = getDatabase(app);
+
+    // Hàm lấy địa chỉ IP công cộng của người dùng
+async function getUserIP() {
+    try {
+        const response = await fetch('https://api.ipify.org?format=json');
+        const data = await response.json();
+        return data.ip;
+    } catch (error) {
+        console.error('Lỗi khi lấy địa chỉ IP:', error);
+        return null;
+    }
+}
+
+// Hàm lấy thời gian truy cập hiện tại
+function getCurrentTime() {
+    const now = new Date();
+    return now.toLocaleString(); // Format thời gian đọc dễ dàng hơn
+}
+
+// Hàm xử lý lưu và chuyển hướng khi nhấn nút
+async function handleRedirection() {
+    try {
+        const userIp = await getUserIP();
+        const accessTime = getCurrentTime();
+
+        if (!userIp) return;
+
+        const firstVisitorRef = ref(database, 'firstVisitor');
+        const subsequentVisitorsRef = ref(database, 'subsequentVisitors');
+
+        // Kiểm tra khách truy cập đầu tiên
+        onValue(firstVisitorRef, async (snapshot) => {
+            if (snapshot.exists()) {
+                const firstVisitor = snapshot.val();
+
+                // Nếu IP trùng với khách đầu tiên
+                if (firstVisitor.ip === userIp) {
+                    // Chuyển đến trang a.html khi nhấn nút
+                    document.getElementById('actionButton').addEventListener('click', () => {
+                        window.location.href = "a.html";
+                    });
+                } else {
+                    // Thêm vào danh sách khách tiếp theo
+                    await push(subsequentVisitorsRef, { ip: userIp, time: accessTime });
+
+                    // Chuyển đến trang b.html khi nhấn nút
+                    document.getElementById('actionButton').addEventListener('click', () => {
+                        window.location.href = "/Dạoma.mp4";
+                    });
+                }
+            } else {
+                // Gán IP cho khách đầu tiên nếu chưa có
+                await set(firstVisitorRef, { ip: userIp, time: accessTime });
+
+                // Chuyển đến trang a.html khi nhấn nút
+                document.getElementById('actionButton').addEventListener('click', () => {
+                    window.location.href = "a.html";
+                });
+            }
+        }, { onlyOnce: true });
+    } catch (error) {
+        console.error('Lỗi trong quá trình xử lý chuyển hướng:', error);
+    }
+}
+
+// Gọi hàm xử lý sau khi tải trang
+handleRedirection();
+
+
+
+    // Hiệu ứng Loading
+    let progress = 0;
+    const progressElement = document.getElementById('progress');
+    const loadingElement = document.getElementById('loading');
+    const contentElement = document.getElementById('content');
+    const actionButton = document.getElementById('actionButton');
+
+    const loadingInterval = setInterval(() => {
+      if (progress < 100) {
+        progress += 1;
+        progressElement.textContent = `${progress}%`;
+      } else {
+        clearInterval(loadingInterval);
+        loadingElement.classList.add('hidden');
+        contentElement.classList.remove('hidden');
+        startFireworks();
+      }
+    }, 50);
+
+    
+
+    // Xử lý khi nhấn nút
+    actionButton.addEventListener('click', saveIPAndNavigate);
+  </script>
+</body>
+</html>
